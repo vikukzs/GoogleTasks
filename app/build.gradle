@@ -1,0 +1,66 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 27
+    buildToolsVersion '26.0.2'
+
+    defaultConfig {
+        applicationId "com.example.quickstart"
+        minSdkVersion 14
+        targetSdkVersion 27
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'),
+                    'proguard-rules.pro'
+        }
+    }
+    packagingOptions {
+        exclude 'META-INF/rxjava.properties'
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:27.0.1'
+    compile 'com.android.support:design:27.0.1'
+    compile 'com.google.android.gms:play-services-auth:11.6.0'
+    compile 'pub.devrel:easypermissions:0.3.0'
+    compile('com.google.api-client:google-api-client-android:1.22.0') {
+        exclude group: 'org.apache.httpcomponents'
+    }
+    compile('com.google.apis:google-api-services-calendar:v3-rev255-1.22.0') {
+        exclude group: 'org.apache.httpcomponents'
+    }
+
+    compile('com.google.apis:google-api-services-tasks:v1-rev48-1.23.0') {
+        exclude group: 'org.apache.httpcomponents'
+    }
+    androidTestCompile 'junit:junit:4.12'
+    testCompile 'junit:junit:4.12'
+    androidTestCompile 'com.android.support.test:runner:1.0.1'
+    androidTestCompile 'com.android.support.test:rules:1.0.1'
+    androidTestCompile 'com.android.support:support-annotations:27.0.1'
+
+    //butterknife
+    compile 'com.jakewharton:butterknife:8.8.1'
+    annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
+
+    //recyclerview
+    compile 'com.android.support:cardview-v7:27.0.1'
+    compile 'com.android.support:recyclerview-v7:27.0.1'
+
+    //RxJava
+    compile group: 'io.reactivex.rxjava2', name: 'rxjava', version: '2.1.1'
+    compile 'io.reactivex.rxjava2:rxandroid:2.0.0-RC1'
+    compile 'io.reactivex:rxjava-async-util:0.21.0'
+
+    compile 'com.jakewharton.rxbinding:rxbinding:0.3.0'
+
+    compile 'com.trello:rxlifecycle:0.4.0'
+    compile 'com.trello:rxlifecycle-components:0.4.0'
+
+}
