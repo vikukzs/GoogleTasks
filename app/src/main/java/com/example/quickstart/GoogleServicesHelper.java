@@ -2,6 +2,7 @@ package com.example.quickstart;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Context;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -18,11 +19,11 @@ public class GoogleServicesHelper {
      * @return true if Google Play Services is available and up to
      *     date on this device; false otherwise.
      */
-    public static boolean isGooglePlayServicesAvailable() {
+    public static boolean isGooglePlayServicesAvailable(Context context) {
         GoogleApiAvailability apiAvailability =
                 GoogleApiAvailability.getInstance();
         final int connectionStatusCode =
-                apiAvailability.isGooglePlayServicesAvailable(MyApp.getAppContext());
+                apiAvailability.isGooglePlayServicesAvailable(context);
         return connectionStatusCode == ConnectionResult.SUCCESS;
     }
 
@@ -30,13 +31,13 @@ public class GoogleServicesHelper {
      * Attempt to resolve a missing, out-of-date, invalid or disabled Google
      * Play Services installation via a user dialog, if possible.
      */
-    public static void acquireGooglePlayServices() {
+    public static void acquireGooglePlayServices(Context context) {
         GoogleApiAvailability apiAvailability =
                 GoogleApiAvailability.getInstance();
         final int connectionStatusCode =
-                apiAvailability.isGooglePlayServicesAvailable(MyApp.getAppContext());
+                apiAvailability.isGooglePlayServicesAvailable(context);
         if (apiAvailability.isUserResolvableError(connectionStatusCode)) {
-            showGooglePlayServicesAvailabilityErrorDialog(connectionStatusCode);
+            showGooglePlayServicesAvailabilityErrorDialog(context, connectionStatusCode);
         }
     }
 
@@ -47,11 +48,11 @@ public class GoogleServicesHelper {
      * @param connectionStatusCode code describing the presence (or lack of)
      *     Google Play Services on this device.
      */
-    public static void showGooglePlayServicesAvailabilityErrorDialog(
+    public static void showGooglePlayServicesAvailabilityErrorDialog(Context context,
             final int connectionStatusCode) {
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
         Dialog dialog = apiAvailability.getErrorDialog(
-                (Activity) MyApp.getAppContext(),
+                (Activity) context,
                 connectionStatusCode,
                 REQUEST_GOOGLE_PLAY_SERVICES);
         dialog.show();

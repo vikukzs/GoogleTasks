@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 27
@@ -8,6 +9,7 @@ android {
         applicationId "com.example.quickstart"
         minSdkVersion 14
         targetSdkVersion 27
+        multiDexEnabled true
         versionCode 1
         versionName "1.0"
     }
@@ -62,5 +64,12 @@ dependencies {
 
     compile 'com.trello:rxlifecycle:0.4.0'
     compile 'com.trello:rxlifecycle-components:0.4.0'
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
 
+    //navigationDrawer
+
+
+}
+repositories {
+    mavenCentral()
 }

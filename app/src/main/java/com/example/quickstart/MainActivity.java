@@ -1,13 +1,21 @@
-/**
- * Created by vikuk.zsuzsanna on 2017. 11. 17..
- */
-
 package com.example.quickstart;
 
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
+import com.google.api.client.googleapis.extensions.android.gms.auth.GooglePlayServicesAvailabilityIOException;
+import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException;
+
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ExponentialBackOff;
 
 import com.google.api.services.tasks.TasksScopes;
+
+
+import com.google.api.services.tasks.model.*;
+
 import android.Manifest;
 import android.accounts.AccountManager;
 import android.app.Activity;
@@ -17,12 +25,24 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AppCompatActivity;
+import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
 
-import butterknife.BindView;
+import butterknife.ButterKnife;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
@@ -30,13 +50,9 @@ import static com.example.quickstart.AppUtility.isDeviceOnline;
 import static com.example.quickstart.GoogleServicesHelper.acquireGooglePlayServices;
 import static com.example.quickstart.GoogleServicesHelper.isGooglePlayServicesAvailable;
 
-public class MainActivity extends Activity
+public class MainActivity extends AppCompatActivity
         implements EasyPermissions.PermissionCallbacks {
 
-    @BindView(R.id.main_text)
-    TextView mOutputText;
-
-    GoogleAccountCredential mCredential;
     ProgressDialog mProgress;
 
     static final int REQUEST_ACCOUNT_PICKER = 1000;
@@ -45,17 +61,15 @@ public class MainActivity extends Activity
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
 
     private static final String PREF_ACCOUNT_NAME = "accountName";
-    private static final String[] SCOPES = { TasksScopes.TASKS };
+    private static final String[] SCOPES = {TasksScopes.TASKS_READONLY};
 
-    /**
-     * Create the main activity.
-     * @param savedInstanceState previously saved instance data.
-     */
+    private GoogleAccountCredential mCredential;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.main_activity);
+        ButterKnife.bind(this);
 
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("Calling Google Tasks API ...");
@@ -64,15 +78,25 @@ public class MainActivity extends Activity
         mCredential = GoogleAccountCredential.usingOAuth2(
                 getApplicationContext(), Arrays.asList(SCOPES))
                 .setBackOff(new ExponentialBackOff());
+        getResultsFromApi();
+
+        TasksFragment fragment = new TasksFragment();
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.fragment_container, fragment);
+        transaction.commit();
+    }
+
+    public GoogleAccountCredential getmCredential() {
+        return mCredential;
     }
 
     private void getResultsFromApi() {
-        if (!isGooglePlayServicesAvailable()) {
-            acquireGooglePlayServices();
+        if (!isGooglePlayServicesAvailable(getApplicationContext())) {
+            acquireGooglePlayServices(getApplicationContext());
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
-        } else if (!isDeviceOnline()) {
-            mOutputText.setText("No network connection available.");
+        } else if (!isDeviceOnline(getApplicationContext())) {
+            Toast.makeText(this, "No network connection available.", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -108,9 +132,9 @@ public class MainActivity extends Activity
         switch (requestCode) {
             case REQUEST_GOOGLE_PLAY_SERVICES:
                 if (resultCode != RESULT_OK) {
-                    mOutputText.setText(
+                    Toast.makeText(this,
                             "This app requires Google Play Services. Please install " +
-                                    "Google Play Services on your device and relaunch this app.");
+                                    "Google Play Services on your device and relaunch this app.", Toast.LENGTH_LONG).show();
                 } else {
                     getResultsFromApi();
                 }
@@ -157,8 +181,4 @@ public class MainActivity extends Activity
     public void onPermissionsDenied(int requestCode, List<String> list) {
         // Do nothing.
     }
-
-
-
-
 }

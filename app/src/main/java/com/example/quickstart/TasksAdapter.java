@@ -17,42 +17,45 @@ import butterknife.ButterKnife;
 
 public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.MyViewHolder> {
 
-    private List<CalendarTask> taskList;
+    private List<String> info;
 
-    public TasksAdapter(List<CalendarTask> eventList) {
-        this.taskList = eventList;
+    public TasksAdapter(List<String> infoList) {
+        this.info = infoList;
     }
 
     @Override
     public TasksAdapter.MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View itemView = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.listitem_task, parent, false);
+                .inflate(R.layout.info, parent, false);
         return new MyViewHolder(itemView);
     }
 
     @Override
     public void onBindViewHolder(TasksAdapter.MyViewHolder holder, int position) {
-        CalendarTask calendarTask = taskList.get(position);
-        holder.name.setText(calendarTask.getName());
-        holder.description.setText(calendarTask.getDescription());
-        holder.date.setText(calendarTask.getDate());
-        holder.date.setText(calendarTask.getState());
+        String calendarTask = info.get(position);
+//        holder.name.setText(calendarTask.getName());
+//        holder.description.setText(calendarTask.getDescription());
+//        holder.date.setText(calendarTask.getDate());
+//        holder.date.setText(calendarTask.getState());
+        holder.info.setText(calendarTask);
     }
 
     @Override
     public int getItemCount() {
-        return taskList.size();
+        return info.size();
     }
 
     public class MyViewHolder extends RecyclerView.ViewHolder {
-        @BindView(R.id.name)
-        TextView name;
-        @BindView(R.id.description)
-        TextView description;
-        @BindView(R.id.date)
-        TextView date;
-        @BindView(R.id.state)
-        TextView state;
+//        @BindView(R.id.name)
+//        TextView name;
+//        @BindView(R.id.description)
+//        TextView description;
+//        @BindView(R.id.date)
+//        TextView date;
+//        @BindView(R.id.state)
+//        TextView state;
+        @BindView(R.id.info)
+        TextView info;
 
         public MyViewHolder(View itemView) {
             super(itemView);
