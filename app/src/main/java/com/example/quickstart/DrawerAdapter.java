@@ -44,6 +44,7 @@ public class DrawerAdapter extends RecyclerView.Adapter<DrawerAdapter.MyViewHold
     public class MyViewHolder extends RecyclerView.ViewHolder {
         @BindView(R.id.drawer_listitem_text)
         TextView drawerListItemText;
+        @BindView(R.id.divider) View divider;
 
         public MyViewHolder(View itemView) {
             super(itemView);
