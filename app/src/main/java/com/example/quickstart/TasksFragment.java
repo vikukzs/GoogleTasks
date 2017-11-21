@@ -67,7 +67,7 @@ public class TasksFragment extends Fragment {
         super.onCreate(savedInstanceState);
         mCredential = ((MainActivity) getActivity()).getmCredential();
 
-        getListFromObservable();
+//        getListFromObservable();
     }
 
     public static TasksFragment newInstance() {

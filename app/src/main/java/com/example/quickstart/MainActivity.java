@@ -26,14 +26,13 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
-import android.text.method.ScrollingMovementMethod;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -42,13 +41,22 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import butterknife.BindView;
 import butterknife.ButterKnife;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.observers.DisposableObserver;
+import io.reactivex.schedulers.Schedulers;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
+import static android.content.ContentValues.TAG;
 import static com.example.quickstart.AppUtility.isDeviceOnline;
 import static com.example.quickstart.GoogleServicesHelper.acquireGooglePlayServices;
 import static com.example.quickstart.GoogleServicesHelper.isGooglePlayServicesAvailable;
+import static com.example.quickstart.GoogleServicesHelper.showGooglePlayServicesAvailabilityErrorDialog;
 
 public class MainActivity extends AppCompatActivity
         implements EasyPermissions.PermissionCallbacks {
@@ -65,6 +73,21 @@ public class MainActivity extends AppCompatActivity
 
     private GoogleAccountCredential mCredential;
 
+    private List<String> taskListList = new ArrayList<>();
+
+    private com.google.api.services.tasks.Tasks taskService = null;
+
+    HttpTransport transport = AndroidHttp.newCompatibleTransport();
+    JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+
+    private final CompositeDisposable disposable = new CompositeDisposable();
+    DrawerAdapter drawerAdapter;
+
+    @BindView(R.id.drawer_layout)
+    DrawerLayout drawerLayout;
+    @BindView(R.id.drawer_recview)
+    RecyclerView drawerRecView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,12 +102,18 @@ public class MainActivity extends AppCompatActivity
                 getApplicationContext(), Arrays.asList(SCOPES))
                 .setBackOff(new ExponentialBackOff());
         getResultsFromApi();
+        getListFromObservable();
+
+        drawerAdapter = new DrawerAdapter(taskListList);
+        drawerRecView.setLayoutManager(new LinearLayoutManager(MyApp.getAppContext()));
+        drawerRecView.setAdapter(drawerAdapter);
 
         TasksFragment fragment = new TasksFragment();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, fragment);
         transaction.commit();
     }
+
 
     public GoogleAccountCredential getmCredential() {
         return mCredential;
@@ -181,4 +210,73 @@ public class MainActivity extends AppCompatActivity
     public void onPermissionsDenied(int requestCode, List<String> list) {
         // Do nothing.
     }
+
+    private void getListFromObservable() {
+        disposable.add(taskListObservable()
+                // Run on a background thread
+                .subscribeOn(Schedulers.io())
+                // Be notified on the main thread
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(new DisposableObserver<List<String>>() {
+                    @Override
+                    public void onComplete() {
+                        drawerAdapter.notifyDataSetChanged();
+//                        mOutputText.setText(taskListList.toString());
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                        if (e instanceof GooglePlayServicesAvailabilityIOException) {
+                            showGooglePlayServicesAvailabilityErrorDialog(getApplicationContext(),
+                                    ((GooglePlayServicesAvailabilityIOException) e)
+                                            .getConnectionStatusCode());
+                        } else if (e instanceof UserRecoverableAuthIOException) {
+                            startActivityForResult(
+                                    ((UserRecoverableAuthIOException) e).getIntent(),
+                                    MainActivity.REQUEST_AUTHORIZATION);
+                        } else {
+//                            mOutputText.setText("The following error occurred:\n"
+//                                    + e.getMessage());
+                        }
+                        Log.e(TAG, "onError()", e);
+                    }
+
+                    @Override
+                    public void onNext(List<String> taskListNames) {
+                        taskListList.addAll(taskListNames);
+                    }
+                }));
+    }
+
+    private List<String> getDataFromApi() throws IOException {
+        taskService = new com.google.api.services.tasks.Tasks.Builder(
+                transport, jsonFactory, mCredential)
+                .setApplicationName("Google Tasks API Android Quickstart")
+                .build();
+
+        List<String> taskListInfo = new ArrayList<String>();
+        TaskLists result = taskService.tasklists().list()
+                .execute();
+        List<TaskList> tasklists = result.getItems();
+        if (tasklists != null) {
+            for (TaskList tasklist : tasklists) {
+                taskListInfo.add(String.format("%s (%s)\n",
+                        tasklist.getTitle(),
+                        tasklist.getId()));
+            }
+        }
+        return taskListInfo;
+    }
+
+    private Observable<List<String>> taskListObservable() {
+        return Observable.defer(new Callable<ObservableSource<? extends List<String>>>() {
+            @Override
+            public ObservableSource<? extends List<String>> call() throws Exception {
+                // Do some long running operation
+                return Observable.just(getDataFromApi());
+            }
+        });
+    }
+
 }
