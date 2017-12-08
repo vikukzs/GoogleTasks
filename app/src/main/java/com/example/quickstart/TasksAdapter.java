@@ -26,17 +26,17 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.MyViewHolder
     @Override
     public TasksAdapter.MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View itemView = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.info, parent, false);
+                .inflate(R.layout.main_fragment, parent, false);
         return new MyViewHolder(itemView);
     }
 
     @Override
     public void onBindViewHolder(TasksAdapter.MyViewHolder holder, int position) {
         String calendarTask = info.get(position);
-//        holder.name.setText(calendarTask.getName());
-//        holder.description.setText(calendarTask.getDescription());
-//        holder.date.setText(calendarTask.getDate());
-//        holder.date.setText(calendarTask.getState());
+        holder.name.setText(calendarTask.getName());
+        holder.description.setText(calendarTask.getDescription());
+        holder.date.setText(calendarTask.getDate());
+        holder.date.setText(calendarTask.getState());
         holder.info.setText(calendarTask);
     }
 
@@ -46,14 +46,14 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.MyViewHolder
     }
 
     public class MyViewHolder extends RecyclerView.ViewHolder {
-//        @BindView(R.id.name)
-//        TextView name;
-//        @BindView(R.id.description)
-//        TextView description;
-//        @BindView(R.id.date)
-//        TextView date;
-//        @BindView(R.id.state)
-//        TextView state;
+        @BindView(R.id.name)
+        TextView name;
+        @BindView(R.id.description)
+        TextView description;
+        @BindView(R.id.date)
+        TextView date;
+        @BindView(R.id.state)
+        TextView state;
         @BindView(R.id.info)
         TextView info;
 

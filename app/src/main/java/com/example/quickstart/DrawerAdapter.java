@@ -6,6 +6,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.google.api.services.tasks.model.TaskList;
+
 import java.util.List;
 
 import butterknife.BindView;
@@ -17,9 +19,9 @@ import butterknife.ButterKnife;
 
 public class DrawerAdapter extends RecyclerView.Adapter<DrawerAdapter.MyViewHolder> {
 
-    private List<String> listList;
+    private List<TaskList> listList;
 
-    public DrawerAdapter(List<String> listList) {
+    public DrawerAdapter(List<TaskList> listList) {
         this.listList = listList;
     }
 
@@ -32,7 +34,7 @@ public class DrawerAdapter extends RecyclerView.Adapter<DrawerAdapter.MyViewHold
 
     @Override
     public void onBindViewHolder(DrawerAdapter.MyViewHolder holder, int position) {
-        String listTitle = listList.get(position);
+        String listTitle = listList.get(position).getTitle();
         holder.drawerListItemText.setText(listTitle);
     }
 

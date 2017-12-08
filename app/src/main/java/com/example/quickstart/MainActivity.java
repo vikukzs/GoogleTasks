@@ -1,6 +1,5 @@
 package com.example.quickstart;
 
-import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GooglePlayServicesAvailabilityIOException;
@@ -18,7 +17,6 @@ import com.google.api.services.tasks.model.*;
 
 import android.Manifest;
 import android.accounts.AccountManager;
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -30,9 +28,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.AttributeSet;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -54,6 +50,10 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 import static android.content.ContentValues.TAG;
 import static com.example.quickstart.AppUtility.isDeviceOnline;
+import static com.example.quickstart.Const.REQUEST_ACCOUNT_PICKER;
+import static com.example.quickstart.Const.REQUEST_AUTHORIZATION;
+import static com.example.quickstart.Const.REQUEST_GOOGLE_PLAY_SERVICES;
+import static com.example.quickstart.Const.REQUEST_PERMISSION_GET_ACCOUNTS;
 import static com.example.quickstart.GoogleServicesHelper.acquireGooglePlayServices;
 import static com.example.quickstart.GoogleServicesHelper.isGooglePlayServicesAvailable;
 import static com.example.quickstart.GoogleServicesHelper.showGooglePlayServicesAvailabilityErrorDialog;
@@ -63,30 +63,27 @@ public class MainActivity extends AppCompatActivity
 
     ProgressDialog mProgress;
 
-    static final int REQUEST_ACCOUNT_PICKER = 1000;
-    static final int REQUEST_AUTHORIZATION = 1001;
-    static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
-    static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
-
     private static final String PREF_ACCOUNT_NAME = "accountName";
     private static final String[] SCOPES = {TasksScopes.TASKS_READONLY};
 
     private GoogleAccountCredential mCredential;
 
-    private List<String> taskListList = new ArrayList<>();
+    private List<TaskList> taskListList = new ArrayList<>();
 
     private com.google.api.services.tasks.Tasks taskService = null;
 
     HttpTransport transport = AndroidHttp.newCompatibleTransport();
     JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
 
-    private final CompositeDisposable disposable = new CompositeDisposable();
+    private CompositeDisposable disposable = null;
     DrawerAdapter drawerAdapter;
 
     @BindView(R.id.drawer_layout)
     DrawerLayout drawerLayout;
     @BindView(R.id.drawer_recview)
     RecyclerView drawerRecView;
+
+    private List<Task> allTasksList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,13 +98,26 @@ public class MainActivity extends AppCompatActivity
         mCredential = GoogleAccountCredential.usingOAuth2(
                 getApplicationContext(), Arrays.asList(SCOPES))
                 .setBackOff(new ExponentialBackOff());
+        taskService = new com.google.api.services.tasks.Tasks.Builder(
+                transport, jsonFactory, mCredential)
+                .setApplicationName("Google Tasks API Android Quickstart")
+                .build();
         getResultsFromApi();
-        getListFromObservable();
+        getTaskListListFromObservable();
 
+        initDrawerLayout();
+        drawerAdapter.notifyDataSetChanged();
+
+        openTasksFragment();
+    }
+
+    private void initDrawerLayout() {
         drawerAdapter = new DrawerAdapter(taskListList);
-        drawerRecView.setLayoutManager(new LinearLayoutManager(MyApp.getAppContext()));
+        drawerRecView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
         drawerRecView.setAdapter(drawerAdapter);
+    }
 
+    private void openTasksFragment() {
         TasksFragment fragment = new TasksFragment();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, fragment);
@@ -211,17 +221,18 @@ public class MainActivity extends AppCompatActivity
         // Do nothing.
     }
 
-    private void getListFromObservable() {
+    private void getTaskListListFromObservable() {
+        disposable = new CompositeDisposable();
         disposable.add(taskListObservable()
                 // Run on a background thread
                 .subscribeOn(Schedulers.io())
                 // Be notified on the main thread
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(new DisposableObserver<List<String>>() {
+                .subscribeWith(new DisposableObserver<List<TaskList>>() {
                     @Override
                     public void onComplete() {
-                        drawerAdapter.notifyDataSetChanged();
-//                        mOutputText.setText(taskListList.toString());
+                        disposable.dispose();
+                        getAllTaskListFromObservable();
                     }
 
                     @Override
@@ -234,7 +245,7 @@ public class MainActivity extends AppCompatActivity
                         } else if (e instanceof UserRecoverableAuthIOException) {
                             startActivityForResult(
                                     ((UserRecoverableAuthIOException) e).getIntent(),
-                                    MainActivity.REQUEST_AUTHORIZATION);
+                                    REQUEST_AUTHORIZATION);
                         } else {
 //                            mOutputText.setText("The following error occurred:\n"
 //                                    + e.getMessage());
@@ -243,40 +254,90 @@ public class MainActivity extends AppCompatActivity
                     }
 
                     @Override
-                    public void onNext(List<String> taskListNames) {
-                        taskListList.addAll(taskListNames);
+                    public void onNext(List<TaskList> taskLists) {
+                        taskListList.addAll(taskLists);
                     }
                 }));
     }
 
-    private List<String> getDataFromApi() throws IOException {
-        taskService = new com.google.api.services.tasks.Tasks.Builder(
-                transport, jsonFactory, mCredential)
-                .setApplicationName("Google Tasks API Android Quickstart")
-                .build();
+    private void getAllTaskListFromObservable() {
+        disposable = new CompositeDisposable();
+        disposable.add(taskObservable()
+                // Run on a background thread
+                .subscribeOn(Schedulers.io())
+                // Be notified on the main thread
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(new DisposableObserver<List<Task>>() {
+                    @Override
+                    public void onComplete() {
+                        drawerAdapter.notifyDataSetChanged();
+                        disposable.dispose();
+                    }
 
-        List<String> taskListInfo = new ArrayList<String>();
-        TaskLists result = taskService.tasklists().list()
-                .execute();
-        List<TaskList> tasklists = result.getItems();
-        if (tasklists != null) {
-            for (TaskList tasklist : tasklists) {
-                taskListInfo.add(String.format("%s (%s)\n",
-                        tasklist.getTitle(),
-                        tasklist.getId()));
-            }
-        }
-        return taskListInfo;
+                    @Override
+                    public void onError(Throwable e) {
+
+                        if (e instanceof GooglePlayServicesAvailabilityIOException) {
+                            showGooglePlayServicesAvailabilityErrorDialog(getApplicationContext(),
+                                    ((GooglePlayServicesAvailabilityIOException) e)
+                                            .getConnectionStatusCode());
+                        } else if (e instanceof UserRecoverableAuthIOException) {
+                            startActivityForResult(
+                                    ((UserRecoverableAuthIOException) e).getIntent(),
+                                    REQUEST_AUTHORIZATION);
+                        } else {
+//                            mOutputText.setText("The following error occurred:\n"
+//                                    + e.getMessage());
+                        }
+                        Log.e(TAG, "onError()", e);
+                    }
+
+                    @Override
+                    public void onNext(List<Task> tasks) {
+                        allTasksList.addAll(tasks);
+                    }
+                }));
     }
 
-    private Observable<List<String>> taskListObservable() {
-        return Observable.defer(new Callable<ObservableSource<? extends List<String>>>() {
+    private List<TaskList> getDataFromApi() throws IOException {
+
+        TaskLists result = taskService.tasklists().list()
+                .execute();
+        return result.getItems();
+    }
+
+    private Observable<List<TaskList>> taskListObservable() {
+        return Observable.defer(new Callable<ObservableSource<? extends List<TaskList>>>() {
             @Override
-            public ObservableSource<? extends List<String>> call() throws Exception {
+            public ObservableSource<? extends List<TaskList>> call() throws Exception {
                 // Do some long running operation
                 return Observable.just(getDataFromApi());
             }
         });
     }
 
+    private Observable<List<Task>> taskObservable() {
+        return Observable.defer(new Callable<ObservableSource<? extends List<Task>>>() {
+            @Override
+            public ObservableSource<? extends List<Task>> call() throws Exception {
+                // Do some long running operation
+                return Observable.just(getAllTasksFromAllLists(taskListList));
+            }
+        });
+    }
+
+    private List<Task> getAllTasksFromAllLists(List<TaskList> taskLists) {
+        List<Task> listOfTasks = new ArrayList<>();
+        for (TaskList taskList : taskLists) {
+            Tasks tasks = null;
+            try {
+                tasks = taskService.tasks().list(taskList.getId()).execute();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            listOfTasks.addAll(tasks.getItems());
+        }
+        return listOfTasks;
+    }
 }

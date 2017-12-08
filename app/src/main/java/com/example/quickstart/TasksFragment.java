@@ -38,6 +38,7 @@ import io.reactivex.observers.DisposableObserver;
 import io.reactivex.schedulers.Schedulers;
 
 import static android.content.ContentValues.TAG;
+import static com.example.quickstart.Const.REQUEST_AUTHORIZATION;
 import static com.example.quickstart.GoogleServicesHelper.showGooglePlayServicesAvailabilityErrorDialog;
 
 import com.google.api.services.tasks.model.*;
@@ -110,7 +111,7 @@ public class TasksFragment extends Fragment {
                         } else if (e instanceof UserRecoverableAuthIOException) {
                             startActivityForResult(
                                     ((UserRecoverableAuthIOException) e).getIntent(),
-                                    MainActivity.REQUEST_AUTHORIZATION);
+                                    REQUEST_AUTHORIZATION);
                         } else {
                             mOutputText.setText("The following error occurred:\n"
                                     + e.getMessage());
