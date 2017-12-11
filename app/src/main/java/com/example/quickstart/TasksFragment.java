@@ -43,6 +43,10 @@ import static com.example.quickstart.GoogleServicesHelper.showGooglePlayServices
 
 import com.google.api.services.tasks.model.*;
 
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
 
 /**
  * Created by vikuk.zsuzsanna on 2017. 11. 20..
@@ -50,16 +54,12 @@ import com.google.api.services.tasks.model.*;
 
 public class TasksFragment extends Fragment {
 
-    @BindView(R.id.output_text)
-    TextView mOutputText;
+    @BindView(R.id.frag_recview)
+    RecyclerView fragRecView;
 
-    private List<String> taskListList = new ArrayList<>();
+    private List<Task> taskList = new ArrayList<>();
+    private TasksAdapter adapter;
     private GoogleAccountCredential mCredential;
-
-    private com.google.api.services.tasks.Tasks taskService = null;
-
-    HttpTransport transport = AndroidHttp.newCompatibleTransport();
-    JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
 
     private final CompositeDisposable disposable = new CompositeDisposable();
 
@@ -67,17 +67,22 @@ public class TasksFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mCredential = ((MainActivity) getActivity()).getmCredential();
-
-//        getListFromObservable();
+        EventBus.getDefault().register(this);
     }
 
-    public static TasksFragment newInstance() {
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
 
-        Bundle args = new Bundle();
+        adapter = new TasksAdapter(taskList);
+        fragRecView.setLayoutManager(new LinearLayoutManager(getContext()));
+        fragRecView.setAdapter(adapter);
+    }
 
-        TasksFragment fragment = new TasksFragment();
-        fragment.setArguments(args);
-        return fragment;
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(MessageEvent event) {
+        taskList.addAll(event.getTasks());
+        adapter.notifyDataSetChanged();
     }
 
     @Nullable
@@ -88,79 +93,9 @@ public class TasksFragment extends Fragment {
         return view;
     }
 
-    private void getListFromObservable() {
-        disposable.add(taskListObservable()
-                // Run on a background thread
-                .subscribeOn(Schedulers.io())
-                // Be notified on the main thread
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(new DisposableObserver<List<String>>() {
-                    @Override
-                    public void onComplete() {
-//                        adapter.notifyDataSetChanged();
-                        mOutputText.setText(taskListList.toString());
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-
-                        if (e instanceof GooglePlayServicesAvailabilityIOException) {
-                            showGooglePlayServicesAvailabilityErrorDialog(getContext(),
-                                    ((GooglePlayServicesAvailabilityIOException) e)
-                                            .getConnectionStatusCode());
-                        } else if (e instanceof UserRecoverableAuthIOException) {
-                            startActivityForResult(
-                                    ((UserRecoverableAuthIOException) e).getIntent(),
-                                    REQUEST_AUTHORIZATION);
-                        } else {
-                            mOutputText.setText("The following error occurred:\n"
-                                    + e.getMessage());
-                        }
-                        Log.e(TAG, "onError()", e);
-                    }
-
-                    @Override
-                    public void onNext(List<String> taskListNames) {
-                        taskListList.addAll(taskListNames);
-                    }
-                }));
-    }
-
-    private List<String> getDataFromApi() throws IOException {
-        taskService = new com.google.api.services.tasks.Tasks.Builder(
-                transport, jsonFactory, mCredential)
-                .setApplicationName("Google Tasks API Android Quickstart")
-                .build();
-
-        List<String> taskListInfo = new ArrayList<String>();
-        TaskLists result = taskService.tasklists().list()
-                .execute();
-        List<TaskList> tasklists = result.getItems();
-        if (tasklists != null) {
-            for (TaskList tasklist : tasklists) {
-                taskListInfo.add(String.format("%s (%s)\n",
-                        tasklist.getTitle(),
-                        tasklist.getId()));
-            }
-        }
-        return taskListInfo;
-    }
-
-    private Observable<List<String>> taskListObservable() {
-        return Observable.defer(new Callable<ObservableSource<? extends List<String>>>() {
-            @Override
-            public ObservableSource<? extends List<String>> call() throws Exception {
-                // Do some long running operation
-                return Observable.just(getDataFromApi());
-            }
-        });
-    }
-
     @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        disposable.clear();
+    public void onStop() {
+        super.onStop();
+        EventBus.getDefault().unregister(this);
     }
-
-
 }

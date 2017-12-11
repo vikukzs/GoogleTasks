@@ -7,7 +7,7 @@ import android.content.Context;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 
-import static com.example.quickstart.MainActivity.REQUEST_GOOGLE_PLAY_SERVICES;
+import static com.example.quickstart.Const.REQUEST_GOOGLE_PLAY_SERVICES;
 
 /**
  * Created by Zsuzska on 2017. 10. 09..

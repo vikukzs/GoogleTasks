@@ -31,6 +31,8 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.greenrobot.eventbus.EventBus;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -105,6 +107,8 @@ public class MainActivity extends AppCompatActivity
         getResultsFromApi();
         getTaskListListFromObservable();
 
+        getSupportActionBar().hide();
+
         initDrawerLayout();
         drawerAdapter.notifyDataSetChanged();
 
@@ -137,6 +141,10 @@ public class MainActivity extends AppCompatActivity
         } else if (!isDeviceOnline(getApplicationContext())) {
             Toast.makeText(this, "No network connection available.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    public List<Task> getAllTasksList() {
+        return allTasksList;
     }
 
     @AfterPermissionGranted(REQUEST_PERMISSION_GET_ACCOUNTS)
@@ -231,6 +239,7 @@ public class MainActivity extends AppCompatActivity
                 .subscribeWith(new DisposableObserver<List<TaskList>>() {
                     @Override
                     public void onComplete() {
+                        drawerAdapter.notifyDataSetChanged();
                         disposable.dispose();
                         getAllTaskListFromObservable();
                     }
@@ -270,7 +279,7 @@ public class MainActivity extends AppCompatActivity
                 .subscribeWith(new DisposableObserver<List<Task>>() {
                     @Override
                     public void onComplete() {
-                        drawerAdapter.notifyDataSetChanged();
+                        EventBus.getDefault().post(new MessageEvent(allTasksList));
                         disposable.dispose();
                     }
 
@@ -284,6 +293,7 @@ public class MainActivity extends AppCompatActivity
                         } else if (e instanceof UserRecoverableAuthIOException) {
                             startActivityForResult(
                                     ((UserRecoverableAuthIOException) e).getIntent(),
+
                                     REQUEST_AUTHORIZATION);
                         } else {
 //                            mOutputText.setText("The following error occurred:\n"
@@ -341,3 +351,4 @@ public class MainActivity extends AppCompatActivity
         return listOfTasks;
     }
 }
+
