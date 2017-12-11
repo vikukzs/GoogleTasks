@@ -37,8 +37,10 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.MyViewHolder
         Task task = taskList.get(position);
         holder.name.setText(task.getTitle());
         holder.description.setText(task.getNotes());
-//        holder.date.setText(task.getDue().toString());
-        holder.date.setText(task.getStatus());
+        if (task.getDue ()!= null) {
+            holder.date.setText(task.getDue().toString());
+        }
+        holder.state.setText(task.getStatus());
     }
 
     @Override
