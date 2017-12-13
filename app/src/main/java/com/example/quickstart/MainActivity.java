@@ -104,8 +104,9 @@ public class MainActivity extends AppCompatActivity
                 transport, jsonFactory, mCredential)
                 .setApplicationName("Google Tasks API Android Quickstart")
                 .build();
-        getResultsFromApi();
-        getTaskListListFromObservable();
+        checkGooglePlayAndNetConnection();
+
+
 
         getSupportActionBar().hide();
 
@@ -133,13 +134,15 @@ public class MainActivity extends AppCompatActivity
         return mCredential;
     }
 
-    private void getResultsFromApi() {
+    private void checkGooglePlayAndNetConnection() {
         if (!isGooglePlayServicesAvailable(getApplicationContext())) {
             acquireGooglePlayServices(getApplicationContext());
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
         } else if (!isDeviceOnline(getApplicationContext())) {
             Toast.makeText(this, "No network connection available.", Toast.LENGTH_LONG).show();
+        } else {
+            getTaskListListFromObservable();
         }
     }
 
@@ -155,7 +158,7 @@ public class MainActivity extends AppCompatActivity
                     .getString(PREF_ACCOUNT_NAME, null);
             if (accountName != null) {
                 mCredential.setSelectedAccountName(accountName);
-                getResultsFromApi();
+                checkGooglePlayAndNetConnection();
             } else {
                 // Start a dialog from which the user can choose an account
                 startActivityForResult(
@@ -183,7 +186,7 @@ public class MainActivity extends AppCompatActivity
                             "This app requires Google Play Services. Please install " +
                                     "Google Play Services on your device and relaunch this app.", Toast.LENGTH_LONG).show();
                 } else {
-                    getResultsFromApi();
+                    checkGooglePlayAndNetConnection();
                 }
                 break;
             case REQUEST_ACCOUNT_PICKER:
@@ -198,13 +201,13 @@ public class MainActivity extends AppCompatActivity
                         editor.putString(PREF_ACCOUNT_NAME, accountName);
                         editor.apply();
                         mCredential.setSelectedAccountName(accountName);
-                        getResultsFromApi();
+                        checkGooglePlayAndNetConnection();
                     }
                 }
                 break;
             case REQUEST_AUTHORIZATION:
                 if (resultCode == RESULT_OK) {
-                    getResultsFromApi();
+                    checkGooglePlayAndNetConnection();
                 }
                 break;
         }
