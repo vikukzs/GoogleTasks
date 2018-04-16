@@ -348,8 +348,9 @@ public class MainActivity extends AppCompatActivity
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
-            listOfTasks.addAll(tasks.getItems());
+            if(tasks!=null && tasks.getItems()!=null){
+                listOfTasks.addAll(tasks.getItems());
+            }
         }
         return listOfTasks;
     }
