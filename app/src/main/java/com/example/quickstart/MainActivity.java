@@ -1,5 +1,6 @@
 package com.example.quickstart;
 
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GooglePlayServicesAvailabilityIOException;
@@ -14,6 +15,8 @@ import com.google.api.services.tasks.TasksScopes;
 
 
 import com.google.api.services.tasks.model.*;
+import com.squareup.picasso.Callback;
+import com.squareup.picasso.Picasso;
 
 import android.Manifest;
 import android.accounts.AccountManager;
@@ -21,14 +24,21 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.greenrobot.eventbus.EventBus;
@@ -70,6 +80,8 @@ public class MainActivity extends AppCompatActivity
 
     private GoogleAccountCredential mCredential;
 
+    private GoogleSignInAccount account;
+
     private List<TaskList> taskListList = new ArrayList<>();
 
     private com.google.api.services.tasks.Tasks taskService = null;
@@ -82,8 +94,18 @@ public class MainActivity extends AppCompatActivity
 
     @BindView(R.id.drawer_layout)
     DrawerLayout drawerLayout;
+
     @BindView(R.id.drawer_recview)
     RecyclerView drawerRecView;
+
+    @BindView(R.id.user_image)
+    ImageView userImg;
+
+    @BindView(R.id.user_name)
+    TextView userName;
+
+    @BindView(R.id.user_email)
+    TextView userEmail;
 
     private List<Task> allTasksList = new ArrayList<>();
 
@@ -93,20 +115,19 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.main_activity);
         ButterKnife.bind(this);
 
+        account = getIntent().getParcelableExtra("account");
+
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("Calling Google Tasks API ...");
 
-        // Initialize credentials and service object.
         mCredential = GoogleAccountCredential.usingOAuth2(
                 getApplicationContext(), Arrays.asList(SCOPES))
                 .setBackOff(new ExponentialBackOff());
-        taskService = new com.google.api.services.tasks.Tasks.Builder(
-                transport, jsonFactory, mCredential)
-                .setApplicationName("Google Tasks API Android Quickstart")
+
+        taskService = new com.google.api.services.tasks.Tasks.Builder(transport, jsonFactory, mCredential)
                 .build();
+
         checkGooglePlayAndNetConnection();
-
-
 
         getSupportActionBar().hide();
 
@@ -114,12 +135,34 @@ public class MainActivity extends AppCompatActivity
         drawerAdapter.notifyDataSetChanged();
 
         openTasksFragment();
+
     }
 
     private void initDrawerLayout() {
         drawerAdapter = new DrawerAdapter(taskListList);
         drawerRecView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
         drawerRecView.setAdapter(drawerAdapter);
+
+        userEmail.setText(account.getEmail());
+        userName.setText(account.getDisplayName());
+        if (account.getPhotoUrl() != null) {
+            Picasso.with(this).load(account.getPhotoUrl()).centerCrop().resize(250,250).into(userImg, new Callback() {
+                @Override
+                public void onSuccess() {
+                    Bitmap imageBitmap = ((BitmapDrawable) userImg.getDrawable()).getBitmap();
+                    RoundedBitmapDrawable imageDrawable = RoundedBitmapDrawableFactory.create(getResources(), imageBitmap);
+                    imageDrawable.setCircular(true);
+                    imageDrawable.setCornerRadius(Math.max(imageBitmap.getWidth(), imageBitmap.getHeight()) / 2.0f);
+                    userImg.setImageDrawable(imageDrawable);
+                }
+                @Override
+                public void onError() {
+                    userImg.setColorFilter(ContextCompat.getColor(getApplicationContext(), R.color.cardview_light_background));
+                }
+            });
+        } else {
+            userImg.setColorFilter(ContextCompat.getColor(this, R.color.cardview_light_background));
+        }
     }
 
     private void openTasksFragment() {
